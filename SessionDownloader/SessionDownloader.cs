@@ -9,34 +9,55 @@ using System.Xml;
 namespace SessionDownloader
 {
 
+    public enum Quality
+    {
+        Low,
+        High
+    }
+
+
     public class Downloader
       {
-        private const string DEFAULT_ROOT_PATH = "N:\\Build\\2015\\";
 
         // TODO: parameterize this
         private const string MP4_FEED_URL = "https://channel9.msdn.com/Events/Build/2015/RSS/mp4";
 
-        //private const string WMV_FEED_URL = "http://channel9.msdn.com/Events/Build/2013/RSS/wmv";
-        //private const string WMVHIGH_FEED_URL = "http//channel9.msdn.com/Events/Build/2013/RSS/wmvhigh";
+        //------------------------------------------------------------------------------------
+        // Reference
+        //------------------------------------------------------------------------------------
+        // High quality
+        //https://channel9.msdn.com/Events/Build/2015/RSS/mp4High
+        // Low quality
+        //https://channel9.msdn.com/Events/Build/2015/RSS/mp4        
+        // Azure Con     
+        //https://channel9.msdn.com/Events/Microsoft-Azure/AzureCon-2015/RSS/Mp4
+        //------------------------------------------------------------------------------------
 
-        //private MediaType _mediaType;
         private Uri _feedUri;
-
+        private SyndicationFeed _feed;
         private char[] _invalidChars = { '\\', '/', ':', '*', '?', '"', '<', '>', '|' };
-
         private List<SessionInfo> _sessionInfoList;
 
+        /// <summary>
+        /// Where files should be saved locally
+        /// </summary>
         public string DestinationRootPath { get; set; }
 
+        /// <summary>
+        /// Quality of videos to download
+        /// </summary>
+        public Quality VideoQuality { get; set; }
 
-        SyndicationFeed _feed;
-   
-        public Downloader(string destinationRootPath)
+        /// <summary>
+        /// Downloader constuctor class
+        /// </summary>
+        /// <param name="destinationRootPath">Where files should be saved locally</param>
+        /// <param name="quality">Quality of videos to download. Defaults to Low</param>
+        public Downloader(string destinationRootPath, Quality quality = Quality.Low)
         {
-
             this.DestinationRootPath = destinationRootPath;
+            this.VideoQuality = quality;
 
-            //this._mediaType = mediaType;
             this.Initialize();
         }
    
@@ -49,47 +70,29 @@ namespace SessionDownloader
    
           private void DownloadFiles()
           {
-              foreach (var sessionItem in this._sessionInfoList)
+            foreach (var sessionItem in this._sessionInfoList)
+            {
+              string destinationFileName = ComputeFileName(sessionItem.Title);
+              bool fileExists = CheckIfFileExists(destinationFileName);
+
+              if (fileExists)
               {
-   
-                  string destinationFileName = ComputeFileName(sessionItem.Title);
-   
-                  bool fileExists = CheckIfFileExists(destinationFileName);
-   
-                  if (fileExists)
-                  {
-                      Console.WriteLine("File Exists: " + sessionItem.Title);
-
-                }
-                else
-                  {
+                    Console.WriteLine("File Exists: " + sessionItem.Title);
+              }
+              else
+              {
                     Console.WriteLine("Downloading " + sessionItem.Title);
-   
                     WebClient webClient = new WebClient();
-                    webClient.DownloadProgressChanged += WebClient_DownloadProgressChanged;
-
                     webClient.DownloadFile(sessionItem.MediaUri, destinationFileName);
-
-
-
-
                   }
               }
-              
-   
           }
-
-        private void WebClient_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
-        {
-            Console.WriteLine(e.ProgressPercentage);
-        }
 
         private string ComputeFileName(string sessionTitle)
           {
               var fileName = string.Empty;
    
               string fileNameTitle = ScrubSessionTitle(sessionTitle);
-   
               fileName = this.DestinationRootPath + fileNameTitle + ".mp4";
    
               return fileName;
@@ -102,7 +105,6 @@ namespace SessionDownloader
    
           private string ScrubSessionTitle(string sessionTitle)
           {
-   
               var scrubbedString = sessionTitle;
    
               this._invalidChars.ToList().ForEach(x => {
@@ -111,7 +113,6 @@ namespace SessionDownloader
               });
    
               return scrubbedString;
-   
           }
    
           private void ProcessAtomFeed()
@@ -125,7 +126,6 @@ namespace SessionDownloader
                       {
                           Title = title,
                           MediaUri = uri
-                  
                       });
    
               }
@@ -136,7 +136,6 @@ namespace SessionDownloader
               XmlReader reader = XmlReader.Create(this._feedUri.ToString());
               this._feed = SyndicationFeed.Load(reader);
           }
-   
    
           private void Initialize()
           {
@@ -149,17 +148,16 @@ namespace SessionDownloader
           {
             string targetUrl = string.Empty;
 
-            //switch (this._mediaType)
-            //{
-            //  case MediaType.wmvhigh:
-            //        targetUrl = WMVHIGH_FEED_URL;
-            //        break;
-            //  default:
-            //        targetUrl = WMV_FEED_URL;
-            //        break;
-            //}
+            switch (VideoQuality)
+            {
+                case Quality.High:
+                    targetUrl = MP4_FEED_URL + "high";
+                    break;
+                default:
+                    targetUrl = MP4_FEED_URL;
+                    break;
+            }
 
-            targetUrl = MP4_FEED_URL;   
             this._feedUri = new Uri(targetUrl);
           }
    

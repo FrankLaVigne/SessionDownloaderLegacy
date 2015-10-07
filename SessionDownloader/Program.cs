@@ -11,6 +11,7 @@ namespace SessionDownloader
         static void Main(string[] args)
         {
 
+            
             if (args.Length == 0)
             {
                 Console.WriteLine("Please enter a destination path!");
@@ -24,8 +25,9 @@ namespace SessionDownloader
                 destinationPath = destinationPath + '\\';
             }
 
+            Quality downloadQuality = ReadQualityArg(args);
 
-            Downloader d = new Downloader(destinationPath);
+            Downloader d = new Downloader(destinationPath, downloadQuality);
 
             var startTime = DateTime.Now;
 
@@ -40,6 +42,32 @@ namespace SessionDownloader
 
 
             Console.ReadLine();
+
+        }
+
+        private static Quality ReadQualityArg(string[] args)
+        {
+            try
+            {
+                if (args[1].ToLower().StartsWith("h"))
+                {
+                    return Quality.High;
+                }
+                else
+                {
+                    return Quality.Low;
+                }
+
+
+            }
+            catch (Exception)
+            {
+
+                return Quality.Low;
+
+
+            }
+
 
         }
     }
