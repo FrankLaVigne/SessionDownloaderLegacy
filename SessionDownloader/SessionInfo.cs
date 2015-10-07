@@ -1,0 +1,12 @@
+﻿using System;
+
+namespace SessionDownloader
+{
+    public class SessionInfo
+    {
+        public string Title { get; set; }
+        public Uri MediaUri { get; set; }
+
+    }
+
+}
