@@ -11,8 +11,7 @@ namespace SessionDownloader
 
     public class Downloader
       {
-        // TODO: parameterize this
-        private const string ROOT_PATH = "N:\\Build\\2015\\";
+        private const string DEFAULT_ROOT_PATH = "N:\\Build\\2015\\";
 
         // TODO: parameterize this
         private const string MP4_FEED_URL = "https://channel9.msdn.com/Events/Build/2015/RSS/mp4";
@@ -26,11 +25,17 @@ namespace SessionDownloader
         private char[] _invalidChars = { '\\', '/', ':', '*', '?', '"', '<', '>', '|' };
 
         private List<SessionInfo> _sessionInfoList;
-   
+
+        public string DestinationRootPath { get; set; }
+
+
         SyndicationFeed _feed;
    
-        public Downloader()
+        public Downloader(string destinationRootPath)
         {
+
+            this.DestinationRootPath = destinationRootPath;
+
             //this._mediaType = mediaType;
             this.Initialize();
         }
@@ -85,7 +90,7 @@ namespace SessionDownloader
    
               string fileNameTitle = ScrubSessionTitle(sessionTitle);
    
-              fileName = ROOT_PATH + fileNameTitle + ".mp4";
+              fileName = this.DestinationRootPath + fileNameTitle + ".mp4";
    
               return fileName;
           }
