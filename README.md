@@ -7,3 +7,6 @@ Path to directory where images will be saved.
 
 ##Second parameter: 
 Download high or low quality videos (h or high for high) omit for low quality
+
+##Third parameter: 
+File format. Options are: MP4High, Low, and MP3. (Low is the default)
