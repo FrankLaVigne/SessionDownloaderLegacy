@@ -7,6 +7,8 @@ namespace SessionDownloader
         public string Title { get; set; }
         public Uri MediaUri { get; set; }
 
+        public long FileSize { get; set; }
+
     }
 
 }

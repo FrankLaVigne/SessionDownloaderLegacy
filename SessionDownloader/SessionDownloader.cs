@@ -8,30 +8,15 @@ using System.Xml;
 
 namespace SessionDownloader
 {
-
-    public enum Quality
+    public enum MediaType
     {
-        Low,
-        High
+        Mp4Low,
+        Mp4High,
+        Mp3
     }
-
 
     public class Downloader
       {
-
-        // TODO: parameterize this
-        private const string MP4_FEED_URL = "https://channel9.msdn.com/Events/Build/2015/RSS/mp4";
-
-        //------------------------------------------------------------------------------------
-        // Reference
-        //------------------------------------------------------------------------------------
-        // High quality
-        //https://channel9.msdn.com/Events/Build/2015/RSS/mp4High
-        // Low quality
-        //https://channel9.msdn.com/Events/Build/2015/RSS/mp4        
-        // Azure Con     
-        //https://channel9.msdn.com/Events/Microsoft-Azure/AzureCon-2015/RSS/Mp4
-        //------------------------------------------------------------------------------------
 
         private Uri _feedUri;
         private SyndicationFeed _feed;
@@ -43,20 +28,23 @@ namespace SessionDownloader
         /// </summary>
         public string DestinationRootPath { get; set; }
 
+        public string BaseUrl { get; set; }
+
         /// <summary>
         /// Quality of videos to download
         /// </summary>
-        public Quality VideoQuality { get; set; }
+        public MediaType MediaType { get; set; }
 
         /// <summary>
         /// Downloader constuctor class
         /// </summary>
         /// <param name="destinationRootPath">Where files should be saved locally</param>
-        /// <param name="quality">Quality of videos to download. Defaults to Low</param>
-        public Downloader(string destinationRootPath, Quality quality = Quality.Low)
+        /// <param name="mediaType">Quality of videos to download. Defaults to Low</param>
+        public Downloader(string destinationRootPath, string baseUrl, MediaType mediaType = MediaType.Mp4Low)
         {
             this.DestinationRootPath = destinationRootPath;
-            this.VideoQuality = quality;
+            this.BaseUrl = baseUrl;
+            this.MediaType = mediaType;
 
             this.Initialize();
         }
@@ -72,33 +60,59 @@ namespace SessionDownloader
           {
             foreach (var sessionItem in this._sessionInfoList)
             {
-              string destinationFileName = ComputeFileName(sessionItem.Title);
-              bool fileExists = CheckIfFileExists(destinationFileName);
+                string destinationFileName = ComputeFileName(sessionItem.Title);
+                bool fileExists = CheckIfFileExists(destinationFileName);
 
-              if (fileExists)
-              {
+                if (fileExists)
+                {
                     Console.WriteLine("File Exists: " + sessionItem.Title);
-              }
-              else
-              {
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
                     Console.WriteLine("Downloading " + sessionItem.Title);
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine(ComputeFileSizeInMb(sessionItem.FileSize) + "MB");
                     WebClient webClient = new WebClient();
                     webClient.DownloadFile(sessionItem.MediaUri, destinationFileName);
-                  }
-              }
+                }
+            }
           }
 
+        private string ComputeFileSizeInMb(long fileSizeInBytes)
+        {
+            var fileSizeinMB = (fileSizeInBytes / 1024f) / 1024f;
+
+            return fileSizeinMB.ToString();
+        }
+
         private string ComputeFileName(string sessionTitle)
-          {
-              var fileName = string.Empty;
-   
-              string fileNameTitle = ScrubSessionTitle(sessionTitle);
-              fileName = this.DestinationRootPath + fileNameTitle + ".mp4";
-   
-              return fileName;
-          }
-   
-          private bool CheckIfFileExists(string fileName)
+        {
+            var fileName = string.Empty;
+
+            string fileNameTitle = ScrubSessionTitle(sessionTitle);
+            fileName = this.DestinationRootPath + fileNameTitle + DetermineFileExtension();
+
+            return fileName;
+        }
+
+        private string DetermineFileExtension()
+        {
+            string fileExtension;
+
+            if (this.MediaType == MediaType.Mp3)
+            {
+                fileExtension = ".mp3";
+            }
+            else
+            {
+                fileExtension = ".mp4";
+            }
+
+            return fileExtension;
+        }
+
+        private bool CheckIfFileExists(string fileName)
           {
               return File.Exists(fileName);
           }
@@ -121,11 +135,13 @@ namespace SessionDownloader
               {
                   var title = item.Title.Text;
                   var uri = item.Links[1].Uri;
-   
-                  this._sessionInfoList.Add(new SessionInfo 
+                  var fileSize = item.Links[1].Length;
+
+                this._sessionInfoList.Add(new SessionInfo 
                       {
                           Title = title,
-                          MediaUri = uri
+                          MediaUri = uri,
+                          FileSize = fileSize
                       });
    
               }
@@ -148,13 +164,16 @@ namespace SessionDownloader
           {
             string targetUrl = string.Empty;
 
-            switch (VideoQuality)
+            switch (MediaType)
             {
-                case Quality.High:
-                    targetUrl = MP4_FEED_URL + "high";
+                case MediaType.Mp4High:
+                    targetUrl = this.BaseUrl + "/mp4high";
+                    break;
+                case MediaType.Mp3:
+                    targetUrl = this.BaseUrl + "/mp3";
                     break;
                 default:
-                    targetUrl = MP4_FEED_URL;
+                    targetUrl = this.BaseUrl + "/mp4";
                     break;
             }
 
