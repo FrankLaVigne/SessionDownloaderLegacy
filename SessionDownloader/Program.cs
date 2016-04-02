@@ -94,7 +94,7 @@ namespace SessionDownloader
                 MediaType = mediaType,
                 DestinationPath = destinationPath,
                 BaseUrl = baseUrl,
-                TitlesHasCode = args.FirstOrDefault(a => a.Contains("withcodes")) != default(string)
+                TitlesHasCode = args.FirstOrDefault(a => a.Contains("withcode")) != default(string)
             };
         }
 
