@@ -12,7 +12,8 @@ namespace SessionDownloader
     {
         Mp4Low,
         Mp4High,
-        Mp3
+        Mp3,
+        Slides
     }
 
     public class Downloader
@@ -104,6 +105,10 @@ namespace SessionDownloader
             {
                 fileExtension = ".mp3";
             }
+            else if (this.MediaType == MediaType.Slides)
+            {
+                fileExtension = ".pptx";
+            }
             else
             {
                 fileExtension = ".mp4";
@@ -171,6 +176,9 @@ namespace SessionDownloader
                     break;
                 case MediaType.Mp3:
                     targetUrl = this.BaseUrl + "/mp3";
+                    break;
+                case MediaType.Slides:
+                    targetUrl = this.BaseUrl + "/slides";
                     break;
                 default:
                     targetUrl = this.BaseUrl + "/mp4";

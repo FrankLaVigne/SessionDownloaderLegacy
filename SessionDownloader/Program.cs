@@ -111,6 +111,10 @@ namespace SessionDownloader
                 {
                     returnValue = MediaType.Mp3;
                 }
+                else if (argInputString.Contains("s"))
+                {
+                    returnValue = MediaType.Slides;
+                }
                 else
                 {
                     returnValue = MediaType.Mp4Low;
