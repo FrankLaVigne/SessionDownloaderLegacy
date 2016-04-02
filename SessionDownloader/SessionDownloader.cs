@@ -37,15 +37,21 @@ namespace SessionDownloader
         public MediaType MediaType { get; set; }
 
         /// <summary>
+        /// Whether the Title contains the Session Code or not
+        /// </summary>
+        public bool TitleHasCode { get; set; }
+
+        /// <summary>
         /// Downloader constuctor class
         /// </summary>
         /// <param name="destinationRootPath">Where files should be saved locally</param>
         /// <param name="mediaType">Quality of videos to download. Defaults to Low</param>
-        public Downloader(string destinationRootPath, string baseUrl, MediaType mediaType = MediaType.Mp4Low)
+        public Downloader(string destinationRootPath, string baseUrl, MediaType mediaType = MediaType.Mp4Low, bool titleHasCode = false)
         {
             this.DestinationRootPath = destinationRootPath;
             this.BaseUrl = baseUrl;
             this.MediaType = mediaType;
+            this.TitleHasCode = titleHasCode;
 
             this.Initialize();
         }
@@ -61,7 +67,7 @@ namespace SessionDownloader
         {
             foreach (var sessionItem in this._sessionInfoList)
             {
-                string destinationFileName = ComputeFileName(sessionItem.Title);
+                string destinationFileName = ComputeFileName(sessionItem.Title, sessionItem.Code);
                 bool fileExists = CheckIfFileExists(destinationFileName);
 
                 if (fileExists)
@@ -87,11 +93,12 @@ namespace SessionDownloader
             return fileSizeinMB.ToString();
         }
 
-        private string ComputeFileName(string sessionTitle)
+        private string ComputeFileName(string sessionTitle, string sessionCode)
         {
             var fileName = string.Empty;
+            var code = this.TitleHasCode ? $"[{sessionCode}] " : string.Empty;
+            var fileNameTitle = code + ScrubSessionTitle(sessionTitle);
 
-            string fileNameTitle = ScrubSessionTitle(sessionTitle);
             fileName = this.DestinationRootPath + fileNameTitle + DetermineFileExtension();
 
             return fileName;
