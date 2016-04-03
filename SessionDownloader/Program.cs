@@ -9,8 +9,12 @@ namespace SessionDownloader
     public class Arguments 
     {
         public string DestinationPath { get; set; }
+
         public string BaseUrl { get; set; }
+
         public MediaType MediaType { get; set; }
+
+        public bool TitlesHasCode { get; set; }
     }
 
     public class Program
@@ -45,7 +49,8 @@ namespace SessionDownloader
             Downloader d = new Downloader(
                                             arguments.DestinationPath, 
                                             arguments.BaseUrl, 
-                                            arguments.MediaType);
+                                            arguments.MediaType,
+                                            arguments.TitlesHasCode);
 
             var startTime = DateTime.Now;
 
@@ -88,9 +93,9 @@ namespace SessionDownloader
             {
                 MediaType = mediaType,
                 DestinationPath = destinationPath,
-                BaseUrl = baseUrl
+                BaseUrl = baseUrl,
+                TitlesHasCode = args.FirstOrDefault(a => a.Contains("code")) != default(string)
             };
-
         }
 
         private static MediaType ReadMediaTypeArg(string[] args)
@@ -110,6 +115,10 @@ namespace SessionDownloader
                 else if (argInputString.Contains("mp3"))
                 {
                     returnValue = MediaType.Mp3;
+                }
+                else if (argInputString.Contains("s"))
+                {
+                    returnValue = MediaType.Slides;
                 }
                 else
                 {

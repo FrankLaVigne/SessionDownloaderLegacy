@@ -12,11 +12,12 @@ namespace SessionDownloader
     {
         Mp4Low,
         Mp4High,
-        Mp3
+        Mp3,
+        Slides
     }
 
     public class Downloader
-      {
+    {
 
         private Uri _feedUri;
         private SyndicationFeed _feed;
@@ -36,31 +37,37 @@ namespace SessionDownloader
         public MediaType MediaType { get; set; }
 
         /// <summary>
+        /// Whether the Title contains the Session Code or not
+        /// </summary>
+        public bool TitleHasCode { get; set; }
+
+        /// <summary>
         /// Downloader constuctor class
         /// </summary>
         /// <param name="destinationRootPath">Where files should be saved locally</param>
         /// <param name="mediaType">Quality of videos to download. Defaults to Low</param>
-        public Downloader(string destinationRootPath, string baseUrl, MediaType mediaType = MediaType.Mp4Low)
+        public Downloader(string destinationRootPath, string baseUrl, MediaType mediaType = MediaType.Mp4Low, bool titleHasCode = false)
         {
             this.DestinationRootPath = destinationRootPath;
             this.BaseUrl = baseUrl;
             this.MediaType = mediaType;
+            this.TitleHasCode = titleHasCode;
 
             this.Initialize();
         }
-   
-          public void DownloadMedia()
-          {
-              DownloadAtom();
-              ProcessAtomFeed();
-              DownloadFiles();
-          }
-   
-          private void DownloadFiles()
-          {
+
+        public void DownloadMedia()
+        {
+            DownloadAtom();
+            ProcessAtomFeed();
+            DownloadFiles();
+        }
+
+        private void DownloadFiles()
+        {
             foreach (var sessionItem in this._sessionInfoList)
             {
-                string destinationFileName = ComputeFileName(sessionItem.Title);
+                string destinationFileName = ComputeFileName(sessionItem.Title, sessionItem.Code);
                 bool fileExists = CheckIfFileExists(destinationFileName);
 
                 if (fileExists)
@@ -77,7 +84,7 @@ namespace SessionDownloader
                     webClient.DownloadFile(sessionItem.MediaUri, destinationFileName);
                 }
             }
-          }
+        }
 
         private string ComputeFileSizeInMb(long fileSizeInBytes)
         {
@@ -86,11 +93,12 @@ namespace SessionDownloader
             return fileSizeinMB.ToString();
         }
 
-        private string ComputeFileName(string sessionTitle)
+        private string ComputeFileName(string sessionTitle, string sessionCode)
         {
             var fileName = string.Empty;
+            var code = this.TitleHasCode ? $"[{sessionCode}] " : string.Empty;
+            var fileNameTitle = code + ScrubSessionTitle(sessionTitle);
 
-            string fileNameTitle = ScrubSessionTitle(sessionTitle);
             fileName = this.DestinationRootPath + fileNameTitle + DetermineFileExtension();
 
             return fileName;
@@ -104,6 +112,10 @@ namespace SessionDownloader
             {
                 fileExtension = ".mp3";
             }
+            else if (this.MediaType == MediaType.Slides)
+            {
+                fileExtension = ".pptx";
+            }
             else
             {
                 fileExtension = ".mp4";
@@ -113,55 +125,58 @@ namespace SessionDownloader
         }
 
         private bool CheckIfFileExists(string fileName)
-          {
-              return File.Exists(fileName);
-          }
-   
-          private string ScrubSessionTitle(string sessionTitle)
-          {
-              var scrubbedString = sessionTitle;
-   
-              this._invalidChars.ToList().ForEach(x => {
-   
-                  scrubbedString = scrubbedString.Replace(x, ' ');
-              });
-   
-              return scrubbedString;
-          }
-   
-          private void ProcessAtomFeed()
-          {
-              foreach (var item in this._feed.Items)
-              {
-                  var title = item.Title.Text;
-                  var uri = item.Links[1].Uri;
-                  var fileSize = item.Links[1].Length;
+        {
+            return File.Exists(fileName);
+        }
 
-                this._sessionInfoList.Add(new SessionInfo 
-                      {
-                          Title = title,
-                          MediaUri = uri,
-                          FileSize = fileSize
-                      });
-   
-              }
-          }
-   
-          private void DownloadAtom()
-          {
-              XmlReader reader = XmlReader.Create(this._feedUri.ToString());
-              this._feed = SyndicationFeed.Load(reader);
-          }
-   
-          private void Initialize()
-          {
-              this._sessionInfoList = new List<SessionInfo>();
-   
-              SetFeedUri();
-          }
-   
-          private void SetFeedUri()
-          {
+        private string ScrubSessionTitle(string sessionTitle)
+        {
+            var scrubbedString = sessionTitle;
+
+            this._invalidChars.ToList().ForEach(x =>
+            {
+
+                scrubbedString = scrubbedString.Replace(x, ' ');
+            });
+
+            return scrubbedString;
+        }
+
+        private void ProcessAtomFeed()
+        {
+            foreach (var item in this._feed.Items)
+            {
+                var title = item.Title.Text;
+                var uri = item.Links[1].Uri;
+                var fileSize = item.Links[1].Length;
+                var code = uri.ToString().Split('/').Last().Split('.').First();
+
+                this._sessionInfoList.Add(new SessionInfo
+                {
+                    Title = title,
+                    MediaUri = uri,
+                    FileSize = fileSize,
+                    Code = code
+                });
+
+            }
+        }
+
+        private void DownloadAtom()
+        {
+            XmlReader reader = XmlReader.Create(this._feedUri.ToString());
+            this._feed = SyndicationFeed.Load(reader);
+        }
+
+        private void Initialize()
+        {
+            this._sessionInfoList = new List<SessionInfo>();
+
+            SetFeedUri();
+        }
+
+        private void SetFeedUri()
+        {
             string targetUrl = string.Empty;
 
             switch (MediaType)
@@ -172,13 +187,16 @@ namespace SessionDownloader
                 case MediaType.Mp3:
                     targetUrl = this.BaseUrl + "/mp3";
                     break;
+                case MediaType.Slides:
+                    targetUrl = this.BaseUrl + "/slides";
+                    break;
                 default:
                     targetUrl = this.BaseUrl + "/mp4";
                     break;
             }
 
             this._feedUri = new Uri(targetUrl);
-          }
-   
-      }
-  }
+        }
+
+    }
+}
