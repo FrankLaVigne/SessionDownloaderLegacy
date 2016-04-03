@@ -17,6 +17,9 @@ File format. Options are: MP4High, Low, MP3, or Slides. (Low is the default)
 ###Get all the session videos from Build 2016
 SessionDownloader.exe C:\Downloads\ https://s.ch9.ms/Events/Build/2016/RSS 
 
+###Get all the sessions from Build 2016 in audio format only
+SessionDownloader.exe C:\Downloads\Audio\ https://s.ch9.ms/Events/Build/2016/RSS mp3
+
 ###Get all the slides from Build 2016
 SessionDownloader.exe C:\Downloads\Slides\ https://s.ch9.ms/Events/Build/2016/RSS slides
 
