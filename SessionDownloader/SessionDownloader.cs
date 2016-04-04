@@ -170,6 +170,9 @@ namespace SessionDownloader
 
         private void Initialize()
         {
+            if (!Directory.Exists(this.DestinationRootPath))
+                Directory.CreateDirectory(this.DestinationRootPath);
+
             this._sessionInfoList = new List<SessionInfo>();
 
             SetFeedUri();
