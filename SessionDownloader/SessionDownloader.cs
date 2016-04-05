@@ -151,23 +151,28 @@ namespace SessionDownloader
 
                 Uri fileUri;
                 long fileSize;
+                
 
-                if (this.MediaType == MediaType.Slides)
+                if (this.MediaType != MediaType.Mp4Medium)
                 {
                     fileUri = item.Links[1].Uri;
                     fileSize = item.Links[1].Length;
                 }
                 else
                 {
+                    // TODO: clean this up.
+
                     item.AttributeExtensions.Add(new XmlQualifiedName("media", "http://search.yahoo.com/mrss/"), "media");
 
                     var mediaElement = LoadMediaElementGroup(item);
-
-                    //TODO: add correct file postfix and error handling if the specified format doesn't exist
-
                     var mediaInfo = mediaElement.Descendants()
                         .Where(x => x.Attribute("url").Value.Contains("_mid"))
                         .FirstOrDefault();
+
+                    if (mediaInfo == null)
+                    {
+                        continue;
+                    }
 
                     fileSize = long.Parse(mediaInfo.Attribute("fileSize").Value);
                     fileUri = new Uri(mediaInfo.Attribute("url").Value);
