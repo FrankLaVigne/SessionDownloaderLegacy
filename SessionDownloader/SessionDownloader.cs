@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.ServiceModel.Syndication;
 using System.Xml;
+using System.Xml.Linq;
 
 namespace SessionDownloader
 {
@@ -12,6 +13,7 @@ namespace SessionDownloader
     {
         Mp4Low,
         Mp4High,
+        Mp4Medium,
         Mp3,
         Slides
     }
@@ -146,15 +148,53 @@ namespace SessionDownloader
         {
             foreach (var item in this._feed.Items)
             {
+
+                Uri fileUri;
+                long fileSize;
+
+                if (this.MediaType == MediaType.Slides)
+                {
+                    fileUri = item.Links[1].Uri;
+                    fileSize = item.Links[1].Length;
+                }
+                else
+                {
+                    item.AttributeExtensions.Add(new XmlQualifiedName("media", "http://search.yahoo.com/mrss/"), "media");
+
+                    var mediaElement = LoadMediaElementGroup(item);
+
+                    //TODO: add correct file postfix and error handling if the specified format doesn't exist
+
+                    var mediaInfo = mediaElement.Descendants()
+                        .Where(x => x.Attribute("url").Value.Contains("_mid"))
+                        .FirstOrDefault();
+
+                    fileSize = long.Parse(mediaInfo.Attribute("fileSize").Value);
+                    fileUri = new Uri(mediaInfo.Attribute("url").Value);
+                }
+
+                // Sample XML
+                // -----------------------------------------------------------------------------------
+                //< media:group xmlns:media = "http://search.yahoo.com/mrss/" >
+                //< media:content url = "http://ch9northcentralus.blob.core.windows.net/mfupload/55a876d55f4045e89213a5db0029a1c9/C9LIVE032AzureIoT.mp4" expression = "full" duration = "1612" fileSize = "1" type = "video/mp4" medium = "video" ></ media:content >
+                //< media:content url = "http://video.ch9.ms/ch9/c0c1/fe7a553e-94a5-4e8d-84e6-7c416e6fc0c1/C9LIVE032AzureIoT.mp3" expression = "full" duration = "1612" fileSize = "25799370" type = "audio/mp3" medium = "audio" ></ media:content >
+                //< media:content url = "http://video.ch9.ms/ch9/c0c1/fe7a553e-94a5-4e8d-84e6-7c416e6fc0c1/C9LIVE032AzureIoT.mp4" expression = "full" duration = "1612" fileSize = "158328366" type = "video/mp4" medium = "video" ></ media:content >
+                //< media:content url = "http://video.ch9.ms/ch9/c0c1/fe7a553e-94a5-4e8d-84e6-7c416e6fc0c1/C9LIVE032AzureIoT_high.mp4" expression = "full" duration = "1612" fileSize = "1347843378" type = "video/mp4" medium = "video" ></ media:content >
+                //< media:content url = "http://video.ch9.ms/ch9/c0c1/fe7a553e-94a5-4e8d-84e6-7c416e6fc0c1/C9LIVE032AzureIoT_mid.mp4" expression = "full" duration = "1612" fileSize = "776583734" type = "video/mp4" medium = "video" ></ media:content >
+                //</ media:group >}
+                // -----------------------------------------------------------------------------------
+
+
+
                 var title = item.Title.Text;
-                var uri = item.Links[1].Uri;
-                var fileSize = item.Links[1].Length;
-                var code = uri.ToString().Split('/').Last().Split('.').First();
+
+
+                var code = fileUri.ToString().Split('/').Last().Split('.').First();
 
                 this._sessionInfoList.Add(new SessionInfo
                 {
                     Title = title,
-                    MediaUri = uri,
+                    MediaUri = fileUri,
                     FileSize = fileSize,
                     Code = code
                 });
@@ -162,10 +202,35 @@ namespace SessionDownloader
             }
         }
 
+        private XElement LoadMediaElementGroup(SyndicationItem item)
+        {
+            var allMediaExt = item.ElementExtensions;
+            var mediaExt = item.ElementExtensions
+                .Where(x => x.OuterNamespace == "http://search.yahoo.com/mrss/")
+                .LastOrDefault();
+
+            var reader = mediaExt.GetReader();
+            XNode mediaNode = XElement.ReadFrom(reader);
+            XElement mediaElement = mediaNode as XElement;
+
+
+            return mediaElement;
+
+
+        }
+
         private void DownloadAtom()
         {
             XmlReader reader = XmlReader.Create(this._feedUri.ToString());
+
+
+            //        feed.AttributeExtensions.Add(
+            //new System.Xml.XmlQualifiedName("myns", "http://www.w3.org/2000/xmlns"),
+            //"http://myNamespace.com");
+
             this._feed = SyndicationFeed.Load(reader);
+            //this._feed.AttributeExtensions.Add(new XmlQualifiedName("media", "http://search.yahoo.com/mrss/"), "media");
+
         }
 
         private void Initialize()
@@ -183,6 +248,9 @@ namespace SessionDownloader
             {
                 case MediaType.Mp4High:
                     targetUrl = this.BaseUrl + "/mp4high";
+                    break;
+                case MediaType.Mp4Medium:
+                    targetUrl = this.BaseUrl + "/mp4";
                     break;
                 case MediaType.Mp3:
                     targetUrl = this.BaseUrl + "/mp3";

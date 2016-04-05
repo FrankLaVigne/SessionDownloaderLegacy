@@ -112,6 +112,10 @@ namespace SessionDownloader
                 {
                     returnValue = MediaType.Mp4High;
                 }
+                else if (argInputString.Contains("mid"))
+                {
+                    returnValue = MediaType.Mp4Medium;
+                }
                 else if (argInputString.Contains("mp3"))
                 {
                     returnValue = MediaType.Mp3;
