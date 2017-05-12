@@ -29,3 +29,4 @@ SessionDownloader.exe C:\Downloads\Slides\ https://s.ch9.ms/Events/Build/2016/RS
 
 ## More Info
 Here's a blog post on the Session Downloader: http://www.franksworld.com/2015/10/07/session-downloader-reloaded/
+*Updated for Build 2017:* http://www.franksworld.com/2017/05/12/how-to-download-all-the-sessions-from-build-2017/
