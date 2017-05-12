@@ -23,7 +23,7 @@ namespace SessionDownloader
 
         private Uri _feedUri;
         private SyndicationFeed _feed;
-        private char[] _invalidChars = { '\\', '/', ':', '*', '?', '"', '<', '>', '|' };
+        private char[] _invalidChars = { '\\', '/', ':', '*', '?', '"', '<', '>', '|', '\n' };
         private List<SessionInfo> _sessionInfoList;
 
         /// <summary>
