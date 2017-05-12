@@ -31,6 +31,8 @@ namespace SessionDownloader
             //------------------------------------------------------------------------------------
             // Reference
             //------------------------------------------------------------------------------------
+            // Build 2017
+            // https://s.ch9.ms/Events/Build/2017/RSS
             // Build 2015
             // https://channel9.msdn.com/Events/Build/2015/RSS
             // Azure Con     
