@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.ServiceModel.Syndication;
+using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 
@@ -229,11 +230,45 @@ namespace SessionDownloader
             XmlReader reader = XmlReader.Create(this._feedUri.ToString());
 
 
+            // HACK: really ugly hack to resolve an issue with the Build 2018 RSS feed.
+            // There's an & character in a filename that has not been escaped. To get around this, I download the file as a string and replace the value.
+            // Then inject the cleaned up feed into the XmlReader to contain the carnage of hastily written code.
+            // Why do you ask that I came up with such and awful kludge? Simple: I tweeted about this util and wanted to head off the complaints. :)
+
+            var outerXml = reader.ReadOuterXml();
+
+            WebClient client = new WebClient();
+            string rawString = client.DownloadString(this._feedUri.ToString());
+            rawString = rawString.Replace("http://video.ch9.ms/sessions/c1f9c808-82bc-480a-a930-b340097f6cc1/MicrosoftGraphQueryTips&Tricks.mp4", "http://video.ch9.ms/sessions/c1f9c808-82bc-480a-a930-b340097f6cc1/MicrosoftGraphQueryTips&amp;Tricks.mp4");
+            MemoryStream memStream = new MemoryStream();
+            byte[] data = Encoding.Default.GetBytes(rawString);
+            memStream.Write(data, 0, data.Length);
+            memStream.Position = 0;
+            reader = XmlReader.Create(memStream);
+
+
+
             //        feed.AttributeExtensions.Add(
             //new System.Xml.XmlQualifiedName("myns", "http://www.w3.org/2000/xmlns"),
             //"http://myNamespace.com");
 
-            this._feed = SyndicationFeed.Load(reader);
+            try
+            {
+                this._feed = SyndicationFeed.Load(reader);
+
+            }
+            catch (Exception ex)
+            {
+
+                Console.BackgroundColor = ConsoleColor.Red;
+                Console.Out.WriteLine("Error has occcured.");
+                Console.Out.WriteLine("Details:");
+                Console.Out.WriteLine(ex.Message);
+                Console.ReadLine();
+                
+                
+            }
+
             //this._feed.AttributeExtensions.Add(new XmlQualifiedName("media", "http://search.yahoo.com/mrss/"), "media");
 
         }
