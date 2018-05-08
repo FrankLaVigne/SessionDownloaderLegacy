@@ -11,6 +11,8 @@ Download high or low quality videos (h or high for high) omit for low quality
 ## Third parameter: 
 File format. Options are: MP4High, Low, MP3, or Slides. (Low is the default)
 
+### Get all the session videos from Build 2018
+SessionDownloader.exe C:\Downloads\ https://s.ch9.ms/Events/Build/2018/RSS
 
 
 ### Get all the session videos from Build 2017
