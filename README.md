@@ -10,8 +10,15 @@ The blog post talked about the history of this code. It began humbly as a WPF ap
 
 In 2015, I updated it to download the sessions from Build 2015. In 2016, I added parameters to make it grab all items on Channel9 with an Event RSS feed. In 2018, I encountered some issues: first with the RSS feed then with some other oddities stemming from the previous approach, which had more or less in place since 2009. 
 
+## Future Plans
+Right now, the downloader only downloads one file at a time. I could fix that and add a parameter to set the number of simulaneous downloads. However, I've not made this a priority as I don't want to have users inadvertently taking down Channel9's servers by downloading everything all at once.
+
+Additionally, it's a CLI to keep the code simple. There's no fancy GUI and no plans to add one. If you feel the burning desire to build one, then by all means, fork the repo and make it happen. :)
+
 ## Thanks
 At this time, I'd like to thank those who contributed code to make the downloader better!
+
+
 
 # Instructions
 
