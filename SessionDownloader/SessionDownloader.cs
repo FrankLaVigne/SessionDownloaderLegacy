@@ -22,10 +22,17 @@ namespace SessionDownloader
     public class Downloader
     {
 
+        #region Private Members
+
         private Uri _feedUri;
         private SyndicationFeed _feed;
         private char[] _invalidChars = { '\\', '/', ':', '*', '?', '"', '<', '>', '|', '\n' };
         private List<SessionInfo> _sessionInfoList;
+
+        #endregion
+        
+        #region Public Properties
+
 
         /// <summary>
         /// Where files should be saved locally
@@ -44,6 +51,10 @@ namespace SessionDownloader
         /// </summary>
         public bool TitleHasCode { get; set; }
 
+        #endregion
+
+        #region Constructors
+
         /// <summary>
         /// Downloader constuctor class
         /// </summary>
@@ -59,6 +70,9 @@ namespace SessionDownloader
             this.Initialize();
         }
 
+        #endregion
+
+        #region Public Methods
         public void DownloadMedia()
         {
             DownloadAtom();
@@ -66,6 +80,10 @@ namespace SessionDownloader
             DownloadFiles();
         }
 
+        #endregion
+
+        #region Private Methods
+        
         private void DownloadFiles()
         {
             foreach (var sessionItem in this._sessionInfoList)
@@ -149,35 +167,27 @@ namespace SessionDownloader
         {
             foreach (var item in this._feed.Items)
             {
-
                 Uri fileUri;
                 long fileSize;
-                
 
-                if (this.MediaType != MediaType.Mp4Medium)
+                item.AttributeExtensions.Add(new XmlQualifiedName("media", "http://search.yahoo.com/mrss/"), "media");
+
+                var mediaElement = LoadMediaElementGroup(item);
+
+                if (mediaElement == null)
                 {
-                    fileUri = item.Links[1].Uri;
-                    fileSize = item.Links[1].Length;
+                    continue;
                 }
-                else
+
+                XElement mediaInfo = DetermineMediaUrl(mediaElement);
+
+                if (mediaInfo == null)
                 {
-                    // TODO: clean this up.
-
-                    item.AttributeExtensions.Add(new XmlQualifiedName("media", "http://search.yahoo.com/mrss/"), "media");
-
-                    var mediaElement = LoadMediaElementGroup(item);
-                    var mediaInfo = mediaElement.Descendants()
-                        .Where(x => x.Attribute("url").Value.Contains("_mid"))
-                        .FirstOrDefault();
-
-                    if (mediaInfo == null)
-                    {
-                        continue;
-                    }
-
-                    fileSize = long.Parse(mediaInfo.Attribute("fileSize").Value);
-                    fileUri = new Uri(mediaInfo.Attribute("url").Value);
+                    continue;
                 }
+
+                fileSize = long.Parse(mediaInfo.Attribute("fileSize").Value);
+                fileUri = new Uri(mediaInfo.Attribute("url").Value);
 
                 // Sample XML
                 // -----------------------------------------------------------------------------------
@@ -208,6 +218,51 @@ namespace SessionDownloader
             }
         }
 
+        private XElement DetermineMediaUrl(XElement mediaElement)
+        {
+
+            //<media:group>          
+            //	<media:content url="http://ch9northcentralus.blob.core.windows.net/mfupload/3945ffdbd51747d19996a8d801823ee3/Build18CloudMigrationApp.mp4" expression="full" duration="1221" fileSize="1" type="video/mp4" medium="video"></media:content>
+            //	<media:content url="http://video.ch9.ms/ch9/7c48/a97c5468-4fd2-453a-a0b3-20ab1fa57c48/Build18CloudMigrationApp.mp3" expression="full" duration="1221" fileSize="19550922" type="audio/mp3" medium="audio"></media:content>
+            //	<media:content url="http://video.ch9.ms/ch9/7c48/a97c5468-4fd2-453a-a0b3-20ab1fa57c48/Build18CloudMigrationApp.mp4" expression="full" duration="1221" fileSize="85090993" type="video/mp4" medium="video"></media:content>
+            //	<media:content url="http://video.ch9.ms/ch9/7c48/a97c5468-4fd2-453a-a0b3-20ab1fa57c48/Build18CloudMigrationApp_high.mp4" expression="full" duration="1221" fileSize="768394670" type="video/mp4" medium="video"></media:content>
+            //	<media:content url="http://video.ch9.ms/ch9/7c48/a97c5468-4fd2-453a-a0b3-20ab1fa57c48/Build18CloudMigrationApp_mid.mp4" expression="full" duration="1221" fileSize="456256294" type="video/mp4" medium="video"></media:content>
+            //</media:group>
+
+            int mediaIndex = 4;
+            string fileEnding = string.Empty;
+
+            switch (this.MediaType)
+            {
+                case MediaType.Mp4High:
+                    mediaIndex = 3;
+                    fileEnding = "_high.mp4";
+                    break;
+                case MediaType.Mp4Medium:
+                    mediaIndex = 4;
+                    fileEnding = "_mid.mp4";
+                    break;
+                case MediaType.Mp3:
+                    mediaIndex = 1;
+                    fileEnding = ".mp3";
+                    break;
+                default:
+                    mediaIndex = 4;
+                    fileEnding = ".mp4";
+                    break;
+            }
+
+
+            var mediaFormatElement = (
+                                        from me in mediaElement.Descendants()
+                                        where me.Attribute("url").Value.EndsWith(fileEnding) && me.Attribute("url").Value.Contains("blob.core.windows.net") == false
+                                        select me
+                                     )
+                                      .FirstOrDefault();
+
+            return mediaFormatElement;
+        }
+
         private XElement LoadMediaElementGroup(SyndicationItem item)
         {
             var allMediaExt = item.ElementExtensions;
@@ -215,10 +270,14 @@ namespace SessionDownloader
                 .Where(x => x.OuterNamespace == "http://search.yahoo.com/mrss/")
                 .LastOrDefault();
 
+            if (mediaExt == null)
+            {
+                return null;
+            }
+
             var reader = mediaExt.GetReader();
             XNode mediaNode = XElement.ReadFrom(reader);
             XElement mediaElement = mediaNode as XElement;
-
 
             return mediaElement;
 
@@ -229,47 +288,18 @@ namespace SessionDownloader
         {
             XmlReader reader = XmlReader.Create(this._feedUri.ToString());
 
-
-            // HACK: really ugly hack to resolve an issue with the Build 2018 RSS feed.
-            // There's an & character in a filename that has not been escaped. To get around this, I download the file as a string and replace the value.
-            // Then inject the cleaned up feed into the XmlReader to contain the carnage of hastily written code.
-            // Why do you ask that I came up with such and awful kludge? Simple: I tweeted about this util and wanted to head off the complaints. :)
-
-            var outerXml = reader.ReadOuterXml();
-
-            WebClient client = new WebClient();
-            string rawString = client.DownloadString(this._feedUri.ToString());
-            rawString = rawString.Replace("http://video.ch9.ms/sessions/c1f9c808-82bc-480a-a930-b340097f6cc1/MicrosoftGraphQueryTips&Tricks.mp4", "http://video.ch9.ms/sessions/c1f9c808-82bc-480a-a930-b340097f6cc1/MicrosoftGraphQueryTips&amp;Tricks.mp4");
-            MemoryStream memStream = new MemoryStream();
-            byte[] data = Encoding.Default.GetBytes(rawString);
-            memStream.Write(data, 0, data.Length);
-            memStream.Position = 0;
-            reader = XmlReader.Create(memStream);
-
-
-
-            //        feed.AttributeExtensions.Add(
-            //new System.Xml.XmlQualifiedName("myns", "http://www.w3.org/2000/xmlns"),
-            //"http://myNamespace.com");
-
             try
             {
                 this._feed = SyndicationFeed.Load(reader);
-
             }
             catch (Exception ex)
             {
-
                 Console.BackgroundColor = ConsoleColor.Red;
                 Console.Out.WriteLine("Error has occcured.");
                 Console.Out.WriteLine("Details:");
                 Console.Out.WriteLine(ex.Message);
                 Console.ReadLine();
-                
-                
             }
-
-            //this._feed.AttributeExtensions.Add(new XmlQualifiedName("media", "http://search.yahoo.com/mrss/"), "media");
 
         }
 
@@ -289,25 +319,18 @@ namespace SessionDownloader
 
             switch (MediaType)
             {
-                case MediaType.Mp4High:
-                    targetUrl = this.BaseUrl + "/mp4high";
-                    break;
-                case MediaType.Mp4Medium:
-                    targetUrl = this.BaseUrl + "/mp4";
-                    break;
-                case MediaType.Mp3:
-                    targetUrl = this.BaseUrl + "/mp3";
-                    break;
                 case MediaType.Slides:
                     targetUrl = this.BaseUrl + "/slides";
                     break;
                 default:
-                    targetUrl = this.BaseUrl + "/mp4";
+                    targetUrl = this.BaseUrl + "/";
                     break;
             }
 
             this._feedUri = new Uri(targetUrl);
         }
+
+        #endregion
 
     }
 }
