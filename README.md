@@ -13,7 +13,7 @@ In 2015, I updated it to download the sessions from Build 2015. In 2016, I added
 ## Thanks
 At this time, I'd like to thank those who contributed code to make the downloader better!
 
-#Instructions
+# Instructions
 
 ## First parameter: 
 Path to directory where images will be saved.
