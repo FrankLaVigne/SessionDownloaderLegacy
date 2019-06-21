@@ -2,6 +2,9 @@
 
 A no frills downloader CLI app that pulls down all the video and slides from Build 2018 sessions and other events on MSDN's Channel9.
 
+## Update June 2019
+Starting with Build 2019, the session video files and slide decks are no longer delivered through Channel 9. I made a new repo (https://github.com/FrankLaVigne/SessionDownloader2019) to fix this problem. I'm on the fence as to incorporate the new code with this older code base or continue down the path of a shiny, new .NET Core based solution. 
+
 ## History
 Here's a blog post on the Session Downloader: http://www.franksworld.com/2015/10/07/session-downloader-reloaded/
 The above blog post I wrote was deleted due to ClearDB's Epic SNAFU. Listen to this for details http://datadriven.tv/special-5pm-know-data-is/ 
